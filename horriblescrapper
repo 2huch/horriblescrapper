@@ -1,0 +1,49 @@
+#!/bin/sh
+
+for i in $(curl "http://www.horriblesubs.info/rss.php?res=1080" \
+	| sed 's/>/>\n/g' \
+	| sed 's/<\/.*>$//g' \
+	| sed '/<pubDate>/,+2 d' \
+	| sed '/<guid.*>/,+2 d' \
+	| sed '0,/^<item>$/d' \
+	| sed '/^<item>$/d' \
+	| sed 'N;s/\n/ /' \
+	| sed 'N;s/\n/ /' \
+	| sed 's/<title> //g' \
+	| sed 's/ /<space>/g')
+do
+	r=$(echo $i | sed 's/<space>/ /g')
+	title=$(echo $r | awk -F ' <link> ' '{printf $1}')
+	link=$(echo $r | awk -F ' <link> ' '{printf $2}')
+	for l in $(sed 's/ /<space>/g' $HOME/animedllist)
+	do
+		# each line must be like that:
+		# Title of the Show <link> Path/to/the/Show
+		o=$(echo $l | sed 's/<space>/ /g')
+		title1=$(echo "$o" | awk -F ' <link> ' '{printf $1}')
+		if [ -n "$(echo "$title" | grep "$title1")" ]
+		then
+			if [ -e "$(echo $o | awk -F ' <link> ' '{print $2}')/$title" ]
+			then
+				echo "file already exist"
+				continue
+			fi
+			if [ -e "$(echo $o | awk -F ' <link> ' '{print $2}')/$title.part" ]
+			then
+				echo "file is already downloading"
+				continue
+			fi
+			if ! pgrep -x transmission-da>/dev/null
+			then
+				transmission-daemon
+				notify-send "Starting transmission-daemon"
+				sleep 3
+			fi
+
+			pathf="$(echo $o | awk -F ' <link> ' '{print $2}')/$title"
+			pathd="$(echo $o | awk -F ' <link> ' '{print $2}')"
+			transmission-remote -a "$link" -w "$pathd"
+			notify-send "New episode of $title1" "added as $pathf"
+		fi
+	done
+done
