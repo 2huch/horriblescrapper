@@ -33,7 +33,7 @@ do
 				echo "file is already downloading"
 				continue
 			fi
-			if ! pgrep -x transmission-da>/dev/null
+			if [ -z "$(pgrep -x transmission-da)" ]
 			then
 				transmission-daemon
 				notify-send "Starting transmission-daemon"
