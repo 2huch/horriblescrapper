@@ -1,0 +1,40 @@
+#!/bin/sh
+
+curl "https://nyaa.si/?page=rss&q=-%22+~+%22+1080p&c=1_2&f=0&u=Erai-raws" \
+	| sed -E '/<(title|link)>/!d;s/<\/?(title|link)>//g;s/^\t*//' \
+	| sed '1,2d;N;s/\n/ <link> /' \
+	| while read line
+do
+	title=$(echo $line | awk -F ' <link> ' '{printf $1}')
+	link=$(echo $line | awk -F ' <link> ' '{printf $2}')
+	while read list
+	do
+		# each line must be like that:
+		# Title of the Show <link> Path/to/the/Show
+		title1=$(echo "$list" | awk -F ' <link> ' '{printf $1}')
+		if [ -n "$(echo "$title" | grep "$title1")" ]
+		then
+			if [ -e "$(echo $list | awk -F ' <link> ' '{print $2}')/$title" ]
+			then
+				echo "file already exist"
+				continue
+			fi
+			if [ -e "$(echo $list | awk -F ' <link> ' '{print $2}')/$title.part" ]
+			then
+				echo "file is already downloading"
+				continue
+			fi
+			if [ -z "$(pgrep -x transmission-da)" ]
+			then
+				transmission-daemon
+				notify-send "Starting transmission-daemon"
+				sleep 3
+			fi
+
+			pathf="$(echo $list | awk -F ' <link> ' '{print $2}')/$title"
+			pathd="$(echo $list | awk -F ' <link> ' '{print $2}')"
+			transmission-remote -a "$link" -w "$pathd"
+			notify-send "New episode of $title1" "added as $pathf"
+		fi
+	done < $HOME/animedllist
+done

@@ -1,5 +1,6 @@
 #!/bin/sh
 
+# 2020/10/02 horriblesubs died, this script is now useless
 for i in $(curl "http://www.horriblesubs.info/rss.php?res=1080" \
 	| sed 's/>/>\n/g' \
 	| sed 's/<\/.*>$//g' \
