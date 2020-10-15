@@ -24,6 +24,13 @@ do
 				echo "file is already downloading"
 				continue
 			fi
+			stripped=$(echo "$title" | sed 's/\[[^\[]*\]//g;s/.mkv//')
+			exi=$(ls "$(echo $list | awk -F ' <link> ' '{print $2}')" | grep ".*$stripped.*")
+			if [ -n "$exi" ]
+			then
+				echo "a similar file was found, aborting download"
+				continue
+			fi
 			if [ -z "$(pgrep -x transmission-da)" ]
 			then
 				transmission-daemon
